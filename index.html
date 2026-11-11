@@ -134,6 +134,7 @@ var $=function(id){return document.getElementById(id)};
 var KEY="thjcam-v1";
 var st={obra:"",cor:"#FFE600",lastAddr:"",lastAddrAt:null};
 var MARCA="THJ";
+var SUB=["CONTROLE FOTOGRÁFICO","THJ CONSTRUÇÕES E SERVIÇOS LTDA"];
 try{var s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&typeof s==="object"){for(var k in st){if(s[k]!=null)st[k]=s[k]}}}catch(e){}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
 
@@ -178,6 +179,13 @@ function drawStamp(c,W,H,d){
   c.save();c.translate(W-m-ns*0.12,0);c.scale(1.3,1);
   for(var ci=chs.length-1;ci>=0;ci--){c.fillText(chs[ci],mx,my);mx-=c.measureText(chs[ci]).width+gap}
   c.restore();
+  /* dizeres embaixo da marca, alinhados à direita com ela, até 1,5x a largura dela (como na foto do DNIT) */
+  var tw=(-mx-gap)*1.3*1.5,cx=W-m-ns*0.12,ss=ns*0.3;
+  c.font="italic bold "+ss+face;c.textAlign="right";
+  var sw=0;SUB.forEach(function(l){sw=Math.max(sw,c.measureText(l).width)});
+  if(sw>tw){ss=Math.max(8,ss*tw/sw);c.font="italic bold "+ss+face}
+  c.fillStyle="#000000";
+  SUB.forEach(function(l,i){c.fillText(l,cx,my+ss*1.3+i*ss*1.15)});
 }
 function collect(now){
   var coord="";
