@@ -179,11 +179,12 @@ function drawStamp(c,W,H,d){
   c.save();c.translate(right,0);c.scale(SX,1);
   for(var ci=chs.length-1;ci>=0;ci--){c.fillText(chs[ci],mx,my);mx-=c.measureText(chs[ci]).width+gap}
   c.restore();
-  /* dizeres embaixo da marca: duas linhas centralizadas, na largura da marca (como na foto do DNIT) */
-  var tw=(-mx-gap)*SX,cx=right-tw/2,ss=ns*0.3;
+  /* dizeres embaixo da marca: duas linhas centralizadas na marca, letra do tamanho do modelo do DNIT; a linha comprida pode passar até 30% da largura da marca */
+  var tw=(-mx-gap)*SX,cx=right-tw/2,ss=base*0.019,lim=tw*1.3;
   c.font="italic bold "+ss+face;c.textAlign="center";
   var sw=0;SUB.forEach(function(l){sw=Math.max(sw,c.measureText(l).width)});
-  if(sw>0){ss=Math.max(8,ss*tw/sw);c.font="italic bold "+ss+face}
+  if(sw>lim){ss=Math.max(8,ss*lim/sw);c.font="italic bold "+ss+face;sw=lim}
+  if(cx+sw/2>W-m)cx=W-m-sw/2;
   c.fillStyle="#000000";
   SUB.forEach(function(l,i){c.fillText(l,cx,my+ss*1.35+i*ss*1.18)});
 }
