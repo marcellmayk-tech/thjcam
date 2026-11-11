@@ -187,17 +187,48 @@ function collect(now){
 }
 
 /* ---------- address from coordinates (OpenStreetMap) ---------- */
-function formatAddr(j){
+function partsAddr(j){
   var a=(j&&j.address)||{};
-  var road=a.road||a.pedestrian||a.footway||a.path||a.cycleway||"";
-  var bairro=a.suburb||a.neighbourhood||a.quarter||a.hamlet||"";
-  var city=a.city||a.town||a.village||a.municipality||a.county||"";
-  var uf=(a["ISO3166-2-lvl4"]||"").split("-")[1]||a.state||"";
-  var left=[road,bairro].filter(Boolean).join(", ");
-  var right=city?(city+(uf?" ("+uf+")":"")):uf;
+  return{road:a.road||a.pedestrian||a.footway||a.path||a.cycleway||"",
+    bairro:a.suburb||a.neighbourhood||a.quarter||a.hamlet||"",
+    city:a.city||a.town||a.village||a.municipality||a.county||"",
+    uf:(a["ISO3166-2-lvl4"]||"").split("-")[1]||a.state||""};
+}
+function joinAddr(p){
+  var left=[p.road,p.bairro].filter(Boolean).join(", ");
+  var right=p.city?(p.city+(p.uf?" ("+p.uf+")":"")):p.uf;
   return [left,right].filter(Boolean).join(" - ");
 }
+function formatAddr(j){return joinAddr(partsAddr(j))}
 window.__formatAddr=formatAddr;
+/* Bairro: o mapa livre erra o bairro perto das divisas. Confere a rua nos Correios (ViaCEP)
+   e usa o bairro de lá quando a rua aparece em um único bairro da cidade. */
+function norm(s){return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim()}
+var TIPOS=/^(rua|avenida|travessa|alameda|estrada|praca|rodovia|largo|beco|viela|ladeira|via)\s+/;
+function semTipo(s){return norm(s).replace(TIPOS,"")}
+var bairroCache={};
+function bairroCorreios(p){
+  if(!p.road||!p.city||!/^[A-Z]{2}$/.test(p.uf))return Promise.resolve("");
+  var nome=p.road.replace(/^(rua|avenida|travessa|alameda|estrada|praça|praca|rodovia|largo|beco|viela|ladeira|via)\s+/i,"").trim();
+  if(nome.length<3)return Promise.resolve("");
+  var key=p.uf+"|"+p.city+"|"+p.road;
+  if(key in bairroCache)return Promise.resolve(bairroCache[key]);
+  var ctl=("AbortController" in window)?new AbortController():null;
+  if(ctl)setTimeout(function(){ctl.abort()},6000);
+  var url="https://viacep.com.br/ws/"+p.uf+"/"+encodeURIComponent(p.city)+"/"+encodeURIComponent(nome)+"/json/";
+  return fetch(url,ctl?{signal:ctl.signal}:{}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(list){
+    if(!Array.isArray(list))return "";
+    var alvo=norm(p.road),alvo2=semTipo(p.road),exato={},solto={};
+    list.forEach(function(x){
+      if(!x||!x.bairro)return;
+      if(norm(x.logradouro)===alvo)exato[x.bairro]=1;
+      if(semTipo(x.logradouro)===alvo2)solto[x.bairro]=1;
+    });
+    var ks=Object.keys(exato);if(!ks.length)ks=Object.keys(solto);
+    var b=ks.length===1?ks[0]:"";
+    bairroCache[key]=b;return b;
+  }).catch(function(){return ""});
+}
 function geocode(){
   if(!pos||addrBusy)return;
   var now=Date.now();
@@ -206,10 +237,13 @@ function geocode(){
   addrBusy=true;addrLast=now;var at={lat:pos.lat,lon:pos.lon};
   var url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=pt-BR&lat="+at.lat+"&lon="+at.lon;
   fetch(url,{headers:{"Accept":"application/json"}}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
-    var t=formatAddr(j);
+    var p=partsAddr(j);
+    return bairroCorreios(p).then(function(b){if(b)p.bairro=b;return joinAddr(p)});
+  }).then(function(t){
     if(t){addr=t;addrAt=at;addrFail=false;st.lastAddr=t;st.lastAddrAt=at;persist()}else{addrFail=true}
   }).catch(function(){addrFail=true}).then(function(){addrBusy=false;chips()});
 }
+window.__bairroCorreios=bairroCorreios;
 if(st.lastAddr&&st.lastAddrAt){addr=st.lastAddr;addrAt=st.lastAddrAt}
 
 /* ---------- GPS ---------- */
