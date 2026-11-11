@@ -172,20 +172,20 @@ function drawStamp(c,W,H,d){
       outlined(c,l,m,y+i*lh,f,d.cor);
     });
   }
-  /* marca THJ: preta, Montserrat 900, 30% mais larga, letras com um espacinho */
-  var ns=Math.round(base*0.088),mface="px 'Montserrat','Arial Black',Arial,sans-serif";
+  /* marca THJ: preta, Montserrat 900, 60% mais larga, letras com um espacinho */
+  var ns=Math.round(base*0.095),SX=1.6,mface="px 'Montserrat','Arial Black',Arial,sans-serif";
   c.font="900 "+ns+mface;c.textAlign="right";c.fillStyle="#000000";
-  var chs=Array.from(MARCA),gap=ns*0.03,mx=0,my=m+ns;
-  c.save();c.translate(W-m-ns*0.12,0);c.scale(1.3,1);
+  var chs=Array.from(MARCA),gap=ns*0.03,mx=0,my=m+ns,right=W-m-ns*0.12;
+  c.save();c.translate(right,0);c.scale(SX,1);
   for(var ci=chs.length-1;ci>=0;ci--){c.fillText(chs[ci],mx,my);mx-=c.measureText(chs[ci]).width+gap}
   c.restore();
-  /* dizeres embaixo da marca, alinhados à direita com ela; tamanho próprio (legível na tela do celular), até 62% da largura da foto */
-  var tw=W*0.62,cx=W-m-ns*0.12,ss=Math.round(base*0.034);
-  c.font="italic bold "+ss+face;c.textAlign="right";
+  /* dizeres embaixo da marca: duas linhas centralizadas, na largura da marca (como na foto do DNIT) */
+  var tw=(-mx-gap)*SX,cx=right-tw/2,ss=ns*0.3;
+  c.font="italic bold "+ss+face;c.textAlign="center";
   var sw=0;SUB.forEach(function(l){sw=Math.max(sw,c.measureText(l).width)});
-  if(sw>tw){ss=Math.max(8,ss*tw/sw);c.font="italic bold "+ss+face}
+  if(sw>0){ss=Math.max(8,ss*tw/sw);c.font="italic bold "+ss+face}
   c.fillStyle="#000000";
-  SUB.forEach(function(l,i){c.fillText(l,cx,my+ss*1.3+i*ss*1.15)});
+  SUB.forEach(function(l,i){c.fillText(l,cx,my+ss*1.35+i*ss*1.18)});
 }
 function collect(now){
   var coord="";
